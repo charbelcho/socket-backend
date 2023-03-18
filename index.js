@@ -7,6 +7,13 @@ const axios = require('axios')
 const PORT = process.env.PORT || 8000;
 const INDEX = '/index.html';
 
+//const app2 = require('express')()
+// const server2 = require('http').createServer(app)
+//const cors2 = require('cors');
+// const io2 = require('socket.io')(server)
+// const PORT2 = process.env.PORT || 8001;
+//const INDEX2 = '/index.html';
+
 
 
 app.use(cors())
@@ -194,6 +201,7 @@ io.on("connection", socket => {
   })
 
   socket.on('zuweisen', (data) => {
+    socket.broadcast.to(data.roomId).emit('loading');
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = rooms.findIndex(currentRoomId)
@@ -211,6 +219,7 @@ io.on("connection", socket => {
 
   socket.on('auswaehlen', (data) => {
     if (data.roomId === undefined) return
+    socket.broadcast.to(data.roomId).emit('loading'); 
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     let speicherNamenFuer = []
@@ -358,7 +367,7 @@ io.on("connection", socket => {
 
   socket.on("disconnect", () => {
     let data = isItemInArray(rooms, socket.id)
-    let dataBusfahrer = isItemInArray(busfahrer, socket.id)
+    let dataBusfahrer = isItemInArray(roomsBusfahrer, socket.id)
     var i = undefined
     var j = undefined
 
@@ -383,17 +392,10 @@ io.on("connection", socket => {
       }
     }
 
-    if (i !== undefined && i >= 0) {
-      rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
-      if (rooms[i].users.length === 0) {
-        rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
-      }
-    }
-
     if (j !== undefined && j >= 0) {
       roomsBusfahrer[j].users = roomsBusfahrer[j].users.filter(user => user.id !== socket.id)
       if (roomsBusfahrer[j].users.length === 0) {
-        roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== rooms[j].roomId)
+        roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== roomsBusfahrer[j].roomId)
       }
     }
 
@@ -413,6 +415,389 @@ io.on("connection", socket => {
 
   })
 })
+
+// io2.on("connection", socket => {
+//   connections.push(socket)
+//   console.log('Client connected ' +  socket.id)
+//   console.log('Connect2: %s sockets are connected', connections.length)
+//   socket.emit('deineId', socket.id)
+//   socket.emit('connected')
+//   socket.on("usernameWerbinIch", (data) => {
+//     socket.emit("werbinIchUsername", data)
+//   })
+
+//   socket.on("chat", (data) => {
+//     console.log('======CHAT message==========');
+//     console.log(data);
+//     //socket.emit('CHAT',data);
+//   });
+
+
+//   socket.on("usernameBusfahrer", (data) => {
+//     if ('roomId' in data) {
+//       var i = undefined
+//       var j = undefined
+//       const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//       const currentUser = (element) => element.username === data.usernameBusfahrerOld
+//       i = roomsBusfahrer.findIndex(currentRoomId)
+//       if (roomsBusfahrer[i].users.length > 0) {
+//         j = roomsBusfahrer[i].users.findIndex(currentUser)
+//         if (j !== undefined) {
+//           roomsBusfahrer[i].users[j].username = data.usernameBusfahrerNew
+//           socket.emit("busfahrerUsername", roomsBusfahrer[i].users[j].username)
+//           io2.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+//         }
+//       }
+//     }
+//     else {
+//       socket.emit("busfahrerUsername", data.usernameBusfahrer)
+//     }
+//   })
+
+//   socket.on("createRoom", (data) => {
+//     var roomId = ""
+//     const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
+//     do {
+//       roomId = randomGenerator(5)
+//     } while (roomsBusfahrer.findIndex(currentRoomId) != -1)
+
+//     const room = {
+//       "roomId": roomId,
+//       "users": []
+//     }
+//     const user = {
+//       "id": socket.id,
+//       "username": data.username,
+//       "werbinich": {id: -1, text: "", info:""}
+//     }
+//     var i = undefined
+//     if (roomId !== undefined) {
+//       //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
+//       rooms.push(room)
+//       i = rooms.findIndex(currentRoomId)
+//       rooms[i].users.push(user)
+//       socket.join(roomId)
+//       io2.to(roomId).emit("room", rooms[i])
+//     }
+//   })
+
+//   socket.on("createRoomBusfahrer", (data) => {
+//     var roomId = ""
+//     const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
+//     do {
+//       roomId = randomGenerator(5)
+//     } while (roomsBusfahrer.findIndex(currentRoomId) != -1)
+
+//     const roomBusfahrer = {
+//       roomId: roomId,
+//       deck: [],
+//       users: [],
+//       phase: 0
+//     }
+//     const user = {
+//       id: socket.id,
+//       username: data.username,
+//       karten: [],
+//       flipArray: [false, false, false]
+//     }
+
+//     var i = undefined
+//     if (roomId !== undefined) {
+//       //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
+//       roomsBusfahrer.push(roomBusfahrer)
+//       i = roomsBusfahrer.findIndex(currentRoomId)
+//       roomsBusfahrer[i].users.push(user)
+//       roomsBusfahrer[i].phase = 1
+//       socket.join(roomId)
+//       io2.to(roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+//     }
+//   })
+
+//   socket.on('joinRoom', (data) => {
+//     const user = {
+//       id: socket.id,
+//       username: data.username,
+//       werbinich: {id: -1, text: "", info:""}
+//     }
+
+//     var i = undefined
+//     var j = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     const currentUser = (element) => element.username === data.username
+//     i = rooms.findIndex(currentRoomId)
+
+//     if (i === -1) {
+//       socket.emit('keinRaumGefunden')
+//     }
+//     else {
+//       if (rooms[i].users.length > 0) {
+//         j = rooms[i].users.findIndex(currentUser)
+//       }
+//       if (rooms[i].users.length === 10) {
+//         socket.emit('roomFull')
+//       }
+//       if (j !== -1) {
+//         socket.emit('nameBesetzt')
+//       }
+//       else {
+//         rooms[i].users.push(user)
+//         socket.join(data.roomId)
+//         socket.emit('closeModal')
+//         io2.to(data.roomId).emit("room", rooms[i])
+//       }
+//     }
+//   })
+
+//   socket.on('joinRoomBusfahrer', (data) => {
+//     const user = {
+//       id: socket.id,
+//       username: data.username,
+//       karten: [],
+//       flipArray: [false, false, false]
+//     }
+
+//     var i = undefined
+//     var j = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     const currentUser = (element) => element.username === data.username
+//     i = roomsBusfahrer.findIndex(currentRoomId)
+
+//     if (i === -1) {
+//       io2.to(socket.id).emit('keinRaumGefundenBusfahrer')
+//     }
+//     else {
+//       if (roomsBusfahrer[i].users.length > 0) {
+//         j = roomsBusfahrer[i].users.findIndex(currentUser)
+//       }
+//       if (roomsBusfahrer[i].users.length === 10) {
+//         io2.to(socket.id).emit('roomFullBusfahrer')
+//       }
+//       if (j !== -1) {
+//         io2.to(socket.id).emit('nameBesetztBusfahrer')
+//       }
+//       else {
+//         roomsBusfahrer[i].users.push(user)
+//         roomsBusfahrer[i].phase = 1
+//         socket.join(data.roomId)
+//         io2.to(socket.id).emit('closeModalBusfahrer')
+//         io2.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+//       }
+//     }
+//   })
+
+//   socket.on('zuweisen', (data) => {
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     i = rooms.findIndex(currentRoomId)
+//     allWerbinich = shuffleArray(allWerbinich)
+//     allWerbinich = allWerbinich.filter(element => !usedWerbinich.includes(element))
+//     if (usedWerbinich.length >= allWerbinich.length - 10) {
+//       usedWerbinich = []
+//     }
+//     for (let j = 0; j < rooms[i].users.length; j++) {
+//       rooms[i].users[j].werbinich = allWerbinich[j]
+//       usedWerbinich.push(allWerbinich[j])
+//     }
+//     io2.to(data.roomId).emit("room", rooms[i])
+//   })
+
+//   socket.on('auswaehlen', (data) => {
+//     if (data.roomId === undefined) return
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     let speicherNamenFuer = []
+//     i = rooms.findIndex(currentRoomId)
+//     checker(rooms[i].users, speicherNamenFuer)
+//     for (let j = 0; j < rooms[i].users.length; j++) {
+//       io2.to(rooms[i].users[j].id).emit("speicherNamenFuer", speicherNamenFuer[j])
+//     }
+//   })
+
+//   socket.on('namenSpeichern', (data) => {
+//     var i = undefined
+//     var j = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     const currentUser = (element) => element.username === data.username
+//     i = rooms.findIndex(currentRoomId)
+//     const werbinich = {
+//       id: 0,
+//       text: data.werbinich,
+//       info: ""
+//     }
+//     if (i !== undefined) {
+//       j = rooms[i].users.findIndex(currentUser)
+//     }
+//     if (j > -1) {
+//       rooms[i].users[j].werbinich = werbinich
+//     }
+//     io2.to(data.roomId).emit("room", rooms[i])
+//   })
+
+//   socket.on('austeilen', (data) => {
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     i = roomsBusfahrer.findIndex(currentRoomId)
+//     roomsBusfahrer[i].roomId = data.roomId
+//     roomsBusfahrer[i].deck = JSON.parse(data.deck)
+//     roomsBusfahrer[i].phase = 2
+//     roomsBusfahrer[i].users.map(e => e.karten = [])
+//     roomsBusfahrer[i].users.map(e => e.flipArray = [true, true, true]) 
+//     for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
+//       if (roomsBusfahrer[i].users[j].karten.length < 3) {
+//         for (let k = 0; k < 3; k++) {
+//           roomsBusfahrer[i].users[j].karten.push(j * 3 + k + 15)
+//         }
+//       }
+      
+//       io2.to(roomsBusfahrer[i].users[j].id).emit("meineKarten", roomsBusfahrer[i].users[j].karten)
+//     }
+//     io2.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+//   })
+
+//   socket.on("karteDrehen", (data) => {
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     i = roomsBusfahrer.findIndex(currentRoomId)
+//     for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
+//       var result = roomsBusfahrer[i].users[j].karten.map((e, index) => roomsBusfahrer[i].deck[e].value === roomsBusfahrer[i].deck[data.index].value ? index : '').filter(Number.isInteger)
+//       if (result.length > 0) {
+//         for (let k = 0; k < result.length; k++) {
+//           roomsBusfahrer[i].users[j].flipArray[result[k]] = false
+//         }
+//       }
+//     }
+//     io2.to(data.roomId).emit("gedrehteKarte", data)
+//   })
+
+//   socket.on("busfahren", (data) => {
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     i = roomsBusfahrer.findIndex(currentRoomId)
+//     var username = ""
+//     var cardsLeft = []
+//     for (let j = 0; j < roomsBusfahrer[i].users.length; j++) {
+//       var result = roomsBusfahrer[i].users[j].flipArray.filter((e) => e === true).length
+//       cardsLeft.push(result)
+//     }
+//     var maxValue = Math.max(...cardsLeft)
+//     var maxValueIndexes = []
+//     if (maxValue > 0) {
+//       for (let k = 0; k < cardsLeft.length; k++) {
+//         if (cardsLeft[k] === maxValue) {
+//           maxValueIndexes.push(k)
+//         }
+//       }
+//     }
+//     else {
+//       username = roomsBusfahrer[i].users[Math.floor((Math.random() * roomsBusfahrer[i].users.length))].username
+//     }
+
+//     if (maxValueIndexes.length === 1) {
+//       username = roomsBusfahrer[i].users[maxValueIndexes[0]].username
+//     }
+//     else {
+//       var cardsLeftValue = []
+//       for (let l = 0; l < maxValueIndexes.length; l++) {
+//         var user = {
+//           username: "",
+//           cardsValue: 0
+//         }
+//         user.username = roomsBusfahrer[i].users[maxValueIndexes[l]].username
+//         cardsLeftValue.push(user)
+//         for (let m = 0; m < 3; m++) {
+//           if (roomsBusfahrer[i].users[maxValueIndexes[l]].flipArray[m] === false) {
+//             cardsLeftValue[l].cardsValue = cardsLeftValue[l].cardsValue + roomsBusfahrer[i].deck[roomsBusfahrer[i].users[maxValueIndexes[l]].karten[m]].value
+//           }
+//         }
+//       }
+//       var maxCardValue = Math.max(...cardsLeftValue.map(e => e.cardsValue))
+//       var busfahrer = cardsLeftValue.filter(e => e.cardsValue === maxCardValue)
+//       if (busfahrer.length === 1) {
+//         username = busfahrer[0].username
+//       }
+//       else if (busfahrer.length > 1) {
+//         username = busfahrer[Math.floor((Math.random() * busfahrer.length))].username
+//       }
+//     }
+//     io2.to(data.roomId).emit("busfahrerBestimmen", username)
+//   })
+
+//   socket.on("leave", (data) => {
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     i = rooms.findIndex(currentRoomId)
+//     rooms[i] = data
+//     socket.leave(data.roomId)
+//     io2.to(data.roomId).emit("room", rooms[i])
+//   })
+
+//   socket.on("leaveBusfahrer", (data) => {
+//     var i = undefined
+//     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//     i = roomsBusfahrer.findIndex(currentRoomId)
+//     roomsBusfahrer[i] = data
+//     socket.leave(data.roomId)
+//     io2.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+//   })
+
+//   socket.on("left", (data) => {
+//     io2.to(data.roomId).emit("left", data)
+//   })
+
+//   socket.on("leftBusfahrer", (data) => {
+//     io2.to(data.roomId).emit("leftBusfahrer", data)
+//   })
+
+//   socket.on("disconnect", () => {
+//     let data = isItemInArray(rooms, socket.id)
+//     let dataBusfahrer = isItemInArray(roomsBusfahrer, socket.id)
+//     var i = undefined
+//     var j = undefined
+
+//     if (rooms.length > 0 && data !== undefined) {
+//       if (data.roomId !== undefined) {
+//         const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
+//         i = rooms.findIndex(currentRoomId)
+//       }
+//     }
+
+//     if (roomsBusfahrer.length > 0 && data !== undefined) {
+//       if (dataBusfahrer.roomId !== undefined) {
+//         const currentRoomId = (element) => element.roomId.valueOf() === dataBusfahrer.roomId.valueOf()
+//         j = roomsBusfahrer.findIndex(currentRoomId)
+//       }
+//     }
+
+//     if (i !== undefined && i >= 0) {
+//       rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
+//       if (rooms[i].users.length === 0) {
+//         rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
+//       }
+//     }
+
+//     if (j !== undefined && j >= 0) {
+//       roomsBusfahrer[j].users = roomsBusfahrer[j].users.filter(user => user.id !== socket.id)
+//       if (roomsBusfahrer[j].users.length === 0) {
+//         roomsBusfahrer = roomsBusfahrer.filter(room => room.roomId !== roomsBusfahrer[j].roomId)
+//       }
+//     }
+
+//     if (i !== undefined) {
+//       socket.leave(data.roomId)
+//       io2.to(data.roomId).emit("room", rooms[i])
+//     }
+
+//     if (j !== undefined) {
+//       socket.leave(dataBusfahrer.roomId)
+//       io2.to(dataBusfahrer.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
+//     }
+    
+//     console.log('Client disconnected '+ socket.id)
+//     connections.splice(connections.indexOf(socket), 1)
+//     console.log('Disconnet: %s sockets are connected', connections.length)
+
+//   })
+// })
 
 const randomGenerator = (length) => {
   var result           = ''
@@ -518,3 +903,8 @@ server.listen(PORT, () => {
 })
 
 //to start on produciton -> heroku run npm start
+
+// server2.listen(PORT2, () => {
+//   console.log('Server listening on port ' + PORT2)
+  //loadWerbinich()
+// })
