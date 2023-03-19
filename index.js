@@ -231,6 +231,7 @@ io.on("connection", socket => {
   })
 
   socket.on('namenSpeichern', (data) => {
+    socket.broadcast.to(data.roomId).emit('loading');
     var i = undefined
     var j = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
