@@ -7,14 +7,6 @@ const axios = require('axios')
 const PORT = process.env.PORT || 8000;
 const INDEX = '/index.html';
 
-//const app2 = require('express')()
-// const server2 = require('http').createServer(app)
-//const cors2 = require('cors');
-// const io2 = require('socket.io')(server)
-// const PORT2 = process.env.PORT || 8001;
-//const INDEX2 = '/index.html';
-
-
 
 app.use(cors())
 app.get('/', (req, res) => {
@@ -33,20 +25,13 @@ let usedWerbinich = []
 
 io.on("connection", socket => {
   connections.push(socket)
-  console.log('Client connected ' +  socket.id)
+  console.log('Client connected')
   console.log('Connect: %s sockets are connected', connections.length)
   socket.emit('deineId', socket.id)
   socket.emit('connected')
   socket.on("usernameWerbinIch", (data) => {
     socket.emit("werbinIchUsername", data)
   })
-
-  socket.on("chat", (data) => {
-    console.log('======CHAT message==========');
-    console.log(data);
-    //socket.emit('CHAT',data);
-  });
-
 
   socket.on("usernameBusfahrer", (data) => {
     if ('roomId' in data) {
@@ -157,7 +142,6 @@ io.on("connection", socket => {
       else {
         rooms[i].users.push(user)
         socket.join(data.roomId)
-        socket.emit('closeModal')
         io.to(data.roomId).emit("room", rooms[i])
       }
     }
@@ -194,7 +178,6 @@ io.on("connection", socket => {
         roomsBusfahrer[i].users.push(user)
         roomsBusfahrer[i].phase = 1
         socket.join(data.roomId)
-        io.to(socket.id).emit('closeModalBusfahrer')
         io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
       }
     }
@@ -237,10 +220,11 @@ io.on("connection", socket => {
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     const currentUser = (element) => element.username === data.username
     i = rooms.findIndex(currentRoomId)
+    var info = `https://www.google.de/search?q=${data.werbinich.replace(/ /g,"+")}`
     const werbinich = {
       id: 0,
       text: data.werbinich,
-      info: ""
+      info: info
     }
     if (i !== undefined) {
       j = rooms[i].users.findIndex(currentUser)
