@@ -59,15 +59,15 @@ io.on("connection", socket => {
     const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
     do {
       roomId = randomGenerator(5)
-    } while (roomsBusfahrer.findIndex(currentRoomId) != -1)
+    } while (rooms.findIndex(currentRoomId) != -1)
 
     const room = {
       "roomId": roomId,
-      "users": []
+      "spieler": []
     }
-    const user = {
+    const einSpieler = {
       "id": socket.id,
-      "username": data.username,
+      "name": data,
       "werbinich": {id: -1, text: "", info:""}
     }
     var i = undefined
@@ -75,7 +75,7 @@ io.on("connection", socket => {
       //const currentRoomId = (element) => element.roomId.valueOf() === roomId.valueOf()
       rooms.push(room)
       i = rooms.findIndex(currentRoomId)
-      rooms[i].users.push(user)
+      rooms[i].spieler.push(einSpieler)
       socket.join(roomId)
       io.to(roomId).emit("room", rooms[i])
     }
@@ -114,33 +114,33 @@ io.on("connection", socket => {
   })
 
   socket.on('joinRoom', (data) => {
-    const user = {
+    const einSpieler = {
       id: socket.id,
-      username: data.username,
+      name: data.name,
       werbinich: {id: -1, text: "", info:""}
     }
 
     var i = undefined
     var j = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-    const currentUser = (element) => element.username === data.username
+    const currentUser = (element) => element.name === data.name
     i = rooms.findIndex(currentRoomId)
 
     if (i === -1) {
       socket.emit('keinRaumGefunden')
     }
     else {
-      if (rooms[i].users.length > 0) {
-        j = rooms[i].users.findIndex(currentUser)
+      if (rooms[i].spieler.length > 0) {
+        j = rooms[i].spieler.findIndex(currentUser)
       }
-      if (rooms[i].users.length === 10) {
+      if (rooms[i].spieler.length === 10) {
         socket.emit('roomFull')
       }
       if (j !== -1) {
         socket.emit('nameBesetzt')
       }
       else {
-        rooms[i].users.push(user)
+        rooms[i].spieler.push(einSpieler)
         socket.join(data.roomId)
         io.to(data.roomId).emit("room", rooms[i])
       }
@@ -174,16 +174,20 @@ io.on("connection", socket => {
       if (j !== -1) {
         io.to(socket.id).emit('nameBesetztBusfahrer')
       }
+      if (roomsBusfahrer[i].phase != 1) {
+        io.to(socket.id).emit('spielLaeuft')
+      }
       else {
         roomsBusfahrer[i].users.push(user)
         roomsBusfahrer[i].phase = 1
         socket.join(data.roomId)
+        io.to(socket.id).emit('closeModal')
         io.to(data.roomId).emit("roomBusfahrer", roomsBusfahrer[i])
       }
     }
   })
 
-  socket.on('zuweisen', (data) => {
+  socket.on('zufaellig', (data) => {
     socket.broadcast.to(data.roomId).emit('loading');
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
@@ -193,23 +197,24 @@ io.on("connection", socket => {
     if (usedWerbinich.length >= allWerbinich.length - 10) {
       usedWerbinich = []
     }
-    for (let j = 0; j < rooms[i].users.length; j++) {
-      rooms[i].users[j].werbinich = allWerbinich[j]
+    for (let j = 0; j < rooms[i].spieler.length; j++) {
+      rooms[i].spieler[j].werbinich = allWerbinich[j]
       usedWerbinich.push(allWerbinich[j])
     }
     io.to(data.roomId).emit("room", rooms[i])
   })
 
-  socket.on('auswaehlen', (data) => {
+  socket.on('zuweisen', (data) => {
     if (data.roomId === undefined) return
     socket.broadcast.to(data.roomId).emit('loading'); 
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     let speicherNamenFuer = []
     i = rooms.findIndex(currentRoomId)
-    checker(rooms[i].users, speicherNamenFuer)
-    for (let j = 0; j < rooms[i].users.length; j++) {
-      io.to(rooms[i].users[j].id).emit("speicherNamenFuer", speicherNamenFuer[j])
+    checker(rooms[i].spieler, speicherNamenFuer)
+    console.log(speicherNamenFuer)
+    for (let j = 0; j < rooms[i].spieler.length; j++) {
+      io.to(rooms[i].spieler[j].id).emit("speicherNamenFuer", speicherNamenFuer[j])
     }
   })
 
@@ -218,7 +223,7 @@ io.on("connection", socket => {
     var i = undefined
     var j = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
-    const currentUser = (element) => element.username === data.username
+    const currentUser = (element) => element.name === data.name
     i = rooms.findIndex(currentRoomId)
     var info = `https://www.google.de/search?q=${data.werbinich.replace(/ /g,"+")}`
     const werbinich = {
@@ -227,10 +232,10 @@ io.on("connection", socket => {
       info: info
     }
     if (i !== undefined) {
-      j = rooms[i].users.findIndex(currentUser)
+      j = rooms[i].spieler.findIndex(currentUser)
     }
     if (j > -1) {
-      rooms[i].users[j].werbinich = werbinich
+      rooms[i].spieler[j].werbinich = werbinich
     }
     io.to(data.roomId).emit("room", rooms[i])
   })
@@ -328,7 +333,7 @@ io.on("connection", socket => {
     var i = undefined
     const currentRoomId = (element) => element.roomId.valueOf() === data.roomId.valueOf()
     i = rooms.findIndex(currentRoomId)
-    rooms[i].users = rooms[i].users.filter(user => user.id !== data.userId)
+    rooms[i].spieler = rooms[i].spieler.filter(user => user.id !== data.spielerId)
     socket.leave(data.roomId)
     io.to(data.roomId).emit("room", rooms[i])
   })
@@ -371,8 +376,8 @@ io.on("connection", socket => {
     }
 
     if (i !== undefined && i >= 0) {
-      rooms[i].users = rooms[i].users.filter(user => user.id !== socket.id)
-      if (rooms[i].users.length === 0) {
+      rooms[i].spieler = rooms[i].spieler.filter(user => user.id !== socket.id)
+      if (rooms[i].spieler.length === 0) {
         rooms = rooms.filter(room => room.roomId !== rooms[i].roomId)
       }
     }
@@ -450,8 +455,8 @@ const isItemInArray = (array, item) => {
   }
   if (array.length > 0) {
     for (let i = 0; i < array.length; i++) {
-      for (let j = 0; j < array[i].users.length; j++) {
-        if (array[i].users[j].id.valueOf() === item.valueOf()) {
+      for (let j = 0; j < array[i].spieler.length; j++) {
+        if (array[i].spieler[j].id.valueOf() === item.valueOf()) {
           data.itemInArray = true
           data.roomId = array[i].roomId
           data.x = i
